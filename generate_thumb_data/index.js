@@ -6,8 +6,8 @@ const fs=require('fs-extra');
 const os=require('os');
 const sharp=require('sharp');
 const { getDefaultAutoSelectFamilyAttemptTimeout } = require('net');
-//const getExif=require('exif-async');
-//const parse=require('parse-dms');
+const getExif=require('exif-async');
+const parse=require('parse-dms');
 
 // Generate thumbnail - v1,v2
 exports.generateThumbnails = async (file, context) => {
@@ -84,10 +84,37 @@ exports.generateThumbnails = async (file, context) => {
     // Delete the temp working directory and its files from the GCF's VM
     await fs.remove(workDir);
 
+    //Extract lat,long - v3
+    let gpsobj=await readExifData('china1.jpeg');
+    console.log(gpsobj);
+    let gpsParse=getGPS(gpsobj);
+    console.log(gpsParse);
+
+    //Helper functions
+    async function readExifData(localFile){
+      let exifData;
+      try{
+        exifData=await getExif(localFile);
+        //console.log(exifData);
+        //console.log(exifData.gps);
+        return exifData.gps;
+      }
+      catch(err){
+        console.log(err);
+        return null;
+      }
+    }
+    function getGPS(gps){
+      //parse-dms needs a string in the format of
+      //51:30:0.5486N 0:7:34.4503W
+      const lat=`${gps.GPSLatitude[0]}:${gps.GPSLatitude[1]}:${gps.GPSLatitude[2]}${gps.GPSLatitudeRef}`;
+      const long=`${gps.GPSLongitude[0]}:${gps.GPSLongitude[1]}:${gps.GPSLongitude[2]}${gps.GPSLongitudeRef}`;
+      const coord=parse(`${lat} ${long}`);
+      return coord;
+    }
   } // end of validFile==true
 
   // DELETE the original file uploaded to the "Uploads" bucket
   await sourceBucket.file(gcsFile.name).delete();
   console.log(`File Deleted: ${gcsFile.name}`);
-
 }
