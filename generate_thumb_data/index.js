@@ -1,6 +1,6 @@
 // Imports
 const {Storage}=require('@google-cloud/storage');
-//const {Firestore}=require('@google-cloud/firestore')
+const {Firestore}=require('@google-cloud/firestore')
 const path=require('path');
 const fs=require('fs-extra');
 const os=require('os');
@@ -20,7 +20,6 @@ exports.generateThumbnails = async (file, context) => {
   //Version control
   const version=process.env.K_REVISION;
   console.log(`Running Cloud Function version ${version}`);
-
   console.log(`File name: ${gcsFile.name}`);
   console.log(`Gen number: ${gcsFile.generation}`);
   console.log(`Content Type: ${gcsFile.contentType}`);
@@ -81,9 +80,6 @@ exports.generateThumbnails = async (file, context) => {
       await thumbBucket.upload(thumbPath);
     })
 
-    // Delete the temp working directory and its files from the GCF's VM
-    await fs.remove(workDir);
-
     //Extract lat,long - v3
     let gpsobj=await readExifData('china1.jpeg');
     console.log(gpsobj);
@@ -112,6 +108,34 @@ exports.generateThumbnails = async (file, context) => {
       const coord=parse(`${lat} ${long}`);
       return coord;
     }
+
+    //Write to Firestore - v4
+    const firestore=new Firestore({
+      projectId: "cloudapp-visaxen-globaljags",
+      databaseId: "thumbnail-data"
+    });
+
+    //Create a dummy object for demo purposes
+    let dataObject={};
+
+    //Add some key:value pairs
+    dataObject.imageName=finalFileName;
+    dataObject.imageURL="gs://cloudapp-visaxen-gj-final/1708911934782531.jpg";
+    dataObject.lat=gpsParse.lat;
+    dataObject.lon=gpsParse.lon;
+    dataObject.thumbURL="gs://cloudapp-visaxen-gj-thumbnails/thumb@64_1708911934782531.jpg";
+
+    console.log('The dataobject: ');
+    console.log(dataObject);
+
+    let collectionRef=firestore.collection('Data');
+    let docRef=await collectionRef.add(dataObject);
+
+    console.log(`Document created: ${docRef.id}`);
+
+    // Delete the temp working directory and its files from the GCF's VM
+    await fs.remove(workDir);
+
   } // end of validFile==true
 
   // DELETE the original file uploaded to the "Uploads" bucket
