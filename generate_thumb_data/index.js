@@ -120,10 +120,10 @@ exports.generateThumbnails = async (file, context) => {
 
     //Add some key:value pairs
     dataObject.imageName=finalFileName;
-    dataObject.imageURL="gs://cloudapp-visaxen-gj-final/1708911934782531.jpg";
+    dataObject.imageURL="https://storage.googleapis.com/cloudapp-visaxen-gj-final/"+finalFileName;
     dataObject.lat=gpsParse.lat;
     dataObject.lon=gpsParse.lon;
-    dataObject.thumbURL="gs://cloudapp-visaxen-gj-thumbnails/thumb@64_1708911934782531.jpg";
+    dataObject.thumbURL="https://storage.googleapis.com/cloudapp-visaxen-gj-thumbnails/"+thumbName;
 
     console.log('The dataobject: ');
     console.log(dataObject);
